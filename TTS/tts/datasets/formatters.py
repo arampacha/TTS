@@ -577,7 +577,7 @@ def vctk_freeman(root_path, meta_files='train', ignored_speakers=['s5', 'p315'])
                 text = file_text.readlines()[0]
             wav_file = os.path.join(vctk_path, speaker_id, f"{file_id}.wav")
             if os.path.exists(wav_file):
-                items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id})
+                items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
             else:
                 print(f" [!] wav files don't exist - {wav_file}")
         

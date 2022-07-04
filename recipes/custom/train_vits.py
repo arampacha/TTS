@@ -31,7 +31,12 @@ audio_config = BaseAudioConfig(
     do_amp_to_db_linear=False,
 )
 
+model_args = VitsArgs(
+    use_speaker_embedding=True,
+)
+
 config = VitsConfig(
+    model_args=model_args,
     audio=audio_config,
     run_name="vits-vctk-freeman",
     run_description="Fine-tune VITS on VCTK with added Freeman dataset",
@@ -67,7 +72,13 @@ config = VitsConfig(
     output_path=output_path,
     datasets=[dataset_config],
     dashboard_logger='wandb',
-    test_sentences_file="/home/test_sentences.txt"
+    test_sentences=[
+        ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", "Freeman_angry"],
+        ["Be a voice, not an echo.", "Freeman_normal"],
+        ["I'm sorry Dave. I'm afraid I can't do that.", "Freeman_narration"],
+        ["This cake is great. It's so delicious and moist.", "Freeman_happy"],
+        ["Prior to November 22, 1963.", "Freeman_narration"],
+    ],
 )
 
 # INITIALIZE THE AUDIO PROCESSOR
@@ -92,8 +103,11 @@ train_samples, eval_samples = load_tts_samples(
     eval_split_size=config.eval_split_size,
 )
 
+speaker_manager = SpeakerManager()
+speaker_manager.load_speaker_mapping(output_path)
+config.model_args.num_speakers = speaker_manager.num_speakers
 # init model
-model = Vits(config, ap, tokenizer, speaker_manager=None)
+model = Vits(config, ap, tokenizer, speaker_manager=speaker_manager)
 
 #freeze text encoder
 # for n, p in model.named_parameters():
