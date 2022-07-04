@@ -6,13 +6,13 @@ from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.vits import Vits
+from TTS.tts.models.vits import Vits, CharactersConfig
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
 
 output_path = "/home/freeman-vits-vctk"
 dataset_config = BaseDatasetConfig(
-    name="vctk_freeman", meta_file_train=None, path="/home/data"
+    name="vctk_freeman", meta_file_train='train', path="/home/data", meta_fle_val='dev'
 )
 audio_config = BaseAudioConfig(
     sample_rate=22050,
@@ -33,25 +33,42 @@ audio_config = BaseAudioConfig(
 
 config = VitsConfig(
     audio=audio_config,
-    run_name="vits-freeman-vctk",
-    batch_size=32,
+    run_name="vits-vctk-freeman-angry",
+    run_description="Fine-tune VITS on Freeman angry data from VCTK checkpoint",
+    project_name="voicemod",
+    wandb_entity="arampacha",
+    batch_size=48,
     eval_batch_size=16,
     batch_group_size=5,
-    num_loader_workers=0,
+    num_loader_workers=4,
     num_eval_loader_workers=4,
     run_eval=True,
     test_delay_epochs=0,
     epochs=100,
+    save_step=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
     phoneme_language="en-us",
+    phonemizer="espeak",
+    characters=CharactersConfig(
+        characters_class="TTS.tts.models.vits.VitsCharacters",
+        pad="_",
+        eos="",
+        bos="",
+        characters="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+        punctuations=";:,.!?¡¿—…\"«»“” ",
+        phonemes="ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘'̩'ᵻ"
+    ),
     phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
     compute_input_seq_cache=True,
     print_step=100,
-    print_eval=True,
+    print_eval=False,
     mixed_precision=True,
     output_path=output_path,
     datasets=[dataset_config],
+    dashboard_logger='wandb',
+    eval_split_size=0.1,
+    test_sentences_file="/home/test_sentences.txt"
 )
 
 # INITIALIZE THE AUDIO PROCESSOR
@@ -78,6 +95,11 @@ train_samples, eval_samples = load_tts_samples(
 
 # init model
 model = Vits(config, ap, tokenizer, speaker_manager=None)
+
+#freeze text encoder
+# for n, p in model.named_parameters():
+#     if n.startswith('text_encoder'):
+#         p.requires_grad = False
 
 # init the trainer and 🚀
 trainer = Trainer(

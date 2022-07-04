@@ -559,33 +559,47 @@ def kokoro(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
 
 
 #+++custom+++
-def vctk_freeman(root_path, meta_files=None, ignored_speakers=['s5', 'p315']):
-    items = []
-    # vctk items
-    vctk_path = os.path.join(root_path,'vctk','raw_data','en')
-    meta_files = glob(f"{vctk_path}/**/*.txt", recursive=True)
-    for meta_file in meta_files:
-        _pathlist = os.path.relpath(meta_file, root_path).split(os.sep)
-        speaker_id, txt_file = _pathlist[-2], _pathlist[-1]
-        file_id = txt_file.split(".")[0]
-        # ignore speakers
-        if isinstance(ignored_speakers, list):
-            if speaker_id in ignored_speakers:
-                continue
-        with open(meta_file, "r", encoding="utf-8") as file_text:
-            text = file_text.readlines()[0]
-        wav_file = os.path.join(vctk_path, speaker_id, f"{file_id}.wav")
-        if os.path.exists(wav_file):
-            items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id})
-        else:
-            print(f" [!] wav files don't exist - {wav_file}")
-    
-    # freeman items
-    freeman_path = os.path.join(root_path, 'freeman_v2')
-    metadata = pd.read_csv(os.path.join(freeman_path, 'transcripts.tsv'), sep='\t')
-    for i, row in metadata.iterrows():
-        text = row.transcript
-        wav_file = os.path.join(freeman_path, 'wavs', f'{row.id}.wav')
-        speaker_id = row.speaker.replace(' ', '_')
-        items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
+def vctk_freeman(root_path, meta_files='train', ignored_speakers=['s5', 'p315']):
+    if meta_files=='train':
+        items = []
+        # vctk items
+        vctk_path = os.path.join(root_path,'vctk','raw_data','en')
+        _meta_files = glob(f"{vctk_path}/**/*.txt", recursive=True)
+        for meta_file in _meta_files:
+            _pathlist = os.path.relpath(meta_file, root_path).split(os.sep)
+            speaker_id, txt_file = _pathlist[-2], _pathlist[-1]
+            file_id = txt_file.split(".")[0]
+            # ignore speakers
+            if isinstance(ignored_speakers, list):
+                if speaker_id in ignored_speakers:
+                    continue
+            with open(meta_file, "r", encoding="utf-8") as file_text:
+                text = file_text.readlines()[0]
+            wav_file = os.path.join(vctk_path, speaker_id, f"{file_id}.wav")
+            if os.path.exists(wav_file):
+                items.append({"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id})
+            else:
+                print(f" [!] wav files don't exist - {wav_file}")
+        
+        # freeman items
+        freeman_path = os.path.join(root_path, 'freeman_v2')
+        metadata = pd.read_csv(os.path.join(freeman_path, 'transcripts.tsv'), sep='\t')
+        metadata = metadata[metadata.split=='train']
+        for i, row in metadata.iterrows():
+            text = row.transcript
+            wav_file = os.path.join(freeman_path, 'wavs', f'{row.id}.wav')
+            speaker_id = row.speaker.replace(' ', '_')
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
+
+    elif meta_files == 'dev':
+        items = []
+        # evaluate only on freeman data
+        freeman_path = os.path.join(root_path, 'freeman_v2')
+        metadata = pd.read_csv(os.path.join(freeman_path, 'transcripts.tsv'), sep='\t')
+        metadata = metadata[metadata.split=='dev']
+        for i, row in metadata.iterrows():
+            text = row.transcript
+            wav_file = os.path.join(freeman_path, 'wavs', f'{row.id}.wav')
+            speaker_id = row.speaker.replace(' ', '_')
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
     return items
