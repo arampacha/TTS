@@ -12,7 +12,7 @@ from TTS.utils.audio import AudioProcessor
 
 output_path = "/home/freeman-vits-vctk"
 dataset_config = BaseDatasetConfig(
-    name="vctk_freeman", meta_file_train='train', path="/home/data", meta_fle_val='dev'
+    name="vctk_freeman", meta_file_train='train', path="/home/data", meta_file_val='dev'
 )
 audio_config = BaseAudioConfig(
     sample_rate=22050,
