@@ -6,9 +6,10 @@ from TTS.config.shared_configs import BaseAudioConfig
 from TTS.tts.configs.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.vits import Vits, CharactersConfig
+from TTS.tts.models.vits import Vits, VitsArgs, CharactersConfig
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
+from TTS.tts.utils.speakers import SpeakerManager
 
 output_path = "/home/freeman-vits-vctk"
 dataset_config = BaseDatasetConfig(
@@ -104,7 +105,7 @@ train_samples, eval_samples = load_tts_samples(
 )
 
 speaker_manager = SpeakerManager()
-speaker_manager.load_speaker_mapping(output_path)
+speaker_manager.load_ids_from_file(os.path.join(output_path, 'speakers.json'))
 config.model_args.num_speakers = speaker_manager.num_speakers
 # init model
 model = Vits(config, ap, tokenizer, speaker_manager=speaker_manager)
