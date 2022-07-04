@@ -13,7 +13,8 @@ from TTS.tts.utils.speakers import SpeakerManager
 
 output_path = "/home/freeman-vits-vctk"
 dataset_config = BaseDatasetConfig(
-    name="vctk_freeman", meta_file_train='train', path="/home/data", meta_file_val='dev'
+    name="vctk_freeman", meta_file_train='train', path="/home/data", meta_file_val='dev',
+    ignored_speakers=['s5', 'p315']
 )
 audio_config = BaseAudioConfig(
     sample_rate=22050,
@@ -50,7 +51,7 @@ config = VitsConfig(
     num_eval_loader_workers=4,
     run_eval=True,
     test_delay_epochs=0,
-    epochs=500,
+    epochs=100,
     save_step=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
@@ -74,11 +75,11 @@ config = VitsConfig(
     datasets=[dataset_config],
     dashboard_logger='wandb',
     test_sentences=[
-        ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", "Freeman_angry"],
-        ["Be a voice, not an echo.", "Freeman_normal"],
-        ["I'm sorry Dave. I'm afraid I can't do that.", "Freeman_narration"],
-        ["This cake is great. It's so delicious and moist.", "Freeman_happy"],
-        ["Prior to November 22, 1963.", "Freeman_narration"],
+        ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", "Freeman_angry", ""],
+        ["Be a voice, not an echo.", "Freeman_normal", ""],
+        ["I'm sorry Dave. I'm afraid I can't do that.", "Freeman_narration", ""],
+        ["This cake is great. It's so delicious and moist.", "Freeman_happy", ""],
+        ["Prior to November 22, 1963.", "Freeman_narration", ""],
     ],
 )
 
