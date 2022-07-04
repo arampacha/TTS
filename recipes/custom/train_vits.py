@@ -33,8 +33,8 @@ audio_config = BaseAudioConfig(
 
 config = VitsConfig(
     audio=audio_config,
-    run_name="vits-vctk-freeman-angry",
-    run_description="Fine-tune VITS on Freeman angry data from VCTK checkpoint",
+    run_name="vits-vctk-freeman",
+    run_description="Fine-tune VITS on VCTK with added Freeman dataset",
     project_name="voicemod",
     wandb_entity="arampacha",
     batch_size=48,
@@ -44,7 +44,7 @@ config = VitsConfig(
     num_eval_loader_workers=4,
     run_eval=True,
     test_delay_epochs=0,
-    epochs=100,
+    epochs=500,
     save_step=1000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
@@ -67,7 +67,6 @@ config = VitsConfig(
     output_path=output_path,
     datasets=[dataset_config],
     dashboard_logger='wandb',
-    eval_split_size=0.1,
     test_sentences_file="/home/test_sentences.txt"
 )
 
