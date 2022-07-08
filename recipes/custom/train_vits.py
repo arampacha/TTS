@@ -13,7 +13,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 
 output_path = "/home/freeman-vits-vctk"
 dataset_config = BaseDatasetConfig(
-    name="vctk_freeman", meta_file_train='train', path="/home/data", meta_file_val='dev',
+    name="vctk_freemanx10", meta_file_train='train', path="/home/data", meta_file_val='dev',
     ignored_speakers=['s5', 'p315']
 )
 audio_config = BaseAudioConfig(
@@ -42,9 +42,9 @@ config = VitsConfig(
     audio=audio_config,
     run_name="vits-vctk-freeman",
     run_description="Fine-tune VITS on VCTK with added Freeman dataset",
-    project_name="voicemod",
+    project_name="VM",
     wandb_entity="arampacha",
-    batch_size=48,
+    batch_size=32,
     eval_batch_size=16,
     batch_group_size=5,
     num_loader_workers=4,
@@ -52,7 +52,7 @@ config = VitsConfig(
     run_eval=True,
     test_delay_epochs=0,
     epochs=100,
-    save_step=1000,
+    save_step=5000,
     text_cleaner="english_cleaners",
     use_phonemes=True,
     phoneme_language="en-us",
@@ -71,6 +71,7 @@ config = VitsConfig(
     print_step=100,
     print_eval=False,
     mixed_precision=True,
+    grad_clip=[5., 5.],
     output_path=output_path,
     datasets=[dataset_config],
     dashboard_logger='wandb',
