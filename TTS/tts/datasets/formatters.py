@@ -563,7 +563,7 @@ def vctk_freeman(root_path, meta_files='train', ignored_speakers=['s5', 'p315'])
     if meta_files=='train':
         items = []
         # vctk items
-        vctk_path = os.path.join(root_path,'vctk','raw_data','en')
+        vctk_path = os.path.join(root_path,'vctk','raw_data')
         _meta_files = glob(f"{vctk_path}/**/*.txt", recursive=True)
         for meta_file in _meta_files:
             _pathlist = os.path.relpath(meta_file, root_path).split(os.sep)
@@ -608,7 +608,7 @@ def vctk_freemanx10(root_path, meta_files='train', ignored_speakers=['s5', 'p315
     if meta_files=='train':
         items = []
         # vctk items
-        vctk_path = os.path.join(root_path,'vctk','raw_data','en')
+        vctk_path = os.path.join(root_path,'vctk','raw_data')
         _meta_files = glob(f"{vctk_path}/**/*.txt", recursive=True)
         for meta_file in _meta_files:
             _pathlist = os.path.relpath(meta_file, root_path).split(os.sep)
