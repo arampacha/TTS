@@ -1,0 +1,16 @@
+FROM python:3.10-bullseye
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc g++ make espeak espeak-ng libsndfile1-dev &&  \
+    rm -rf /var/lib/apt/lists/*
+RUN python3 -m pip install --no-cache-dir --upgrade pip
+RUN pip install llvmlite --ignore-installed
+
+RUN python3 -m pip install --no-cache-dir torch torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+WORKDIR /workspace
+COPY requirements.runtime.txt /workspace
+RUN ["/bin/bash", "-c", "python3 -m pip install --no-cache-dir -r requirements.runtime.txt"]
+COPY . /workspace
+RUN pip install .
+ENTRYPOINT [ "tts" ]
