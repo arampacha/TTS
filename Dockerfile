@@ -18,3 +18,5 @@ COPY requirements.txt /workspace/
 RUN ["/bin/bash", "-c", "python3 -m pip install --no-cache-dir -r requirements.txt"]
 COPY . /workspace/
 RUN make install
+
+ENTRYPOINT ["python3", "recipes/vm/test_load_data.py"]
