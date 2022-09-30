@@ -653,9 +653,7 @@ def vctk_freemanx10(root_path, meta_files='train', ignored_speakers=['s5', 'p315
     return items
 
 
-def voicemode_vctk_plus(root_path:str, task_id:str, meta_files:str='train'):
-
-    ignored_speakers=set(['s5', 'p315'])
+def voicemod_vctk_plus(root_path:str, meta_files:str='train', ignored_speakers=['s5', 'p315']):
 
     # user items
     user_items = []
@@ -671,7 +669,7 @@ def voicemode_vctk_plus(root_path:str, task_id:str, meta_files:str='train'):
     train_user_items = user_items[:split]
     dev_user_items = user_items[split:]
 
-    if meta_files=='train':
+    if meta_files.startswith("train"):
         items = []
         # vctk items
         vctk_path = os.path.join(root_path,'vctk','raw_data')
@@ -707,8 +705,29 @@ def voicemode_vctk_plus(root_path:str, task_id:str, meta_files:str='train'):
         items += train_user_items*10
         return items
 
-    elif meta_files=='dev':
+    elif meta_files.startswith('dev'):
         return dev_user_items
 
+    else:
+        raise ValueError(f"Wrong meta_files value: {meta_files}")
+
+
+def voicemod_userdata(root_path:str, meta_files:str, ignored_speakers=None):
+
+    task_id = meta_files.split('_')[1]
+
+    def _read_items(filename):
+        items = []
+        with open(os.path.join(root_path, task_id, filename)) as f:
+            for line in f.readlines():
+                filename, text, speaker_id = line.strip().split('\t')
+                audio_file = os.path.join(root_path, filename)
+                items.append({"text":text, "audio_file": audio_file, "speaker_name":speaker_id})
+        return items
+    
+    if meta_files.startswith('train'):
+        return _read_items('train.tsv')
+    elif meta_files.startswith('dev'):
+        return _read_items('dev.tsv')
     else:
         raise ValueError(f"Wrong meta_files value: {meta_files}")

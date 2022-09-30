@@ -14,9 +14,8 @@ RUN pip install llvmlite --ignore-installed
 RUN python3 -m pip install --no-cache-dir torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113
 RUN python3 -m pip install --no-cache-dir https://github.com/arampacha/Trainer/archive/wandb.zip
 WORKDIR /workspace
-COPY requirements.txt /workspace/
-RUN ["/bin/bash", "-c", "python3 -m pip install --no-cache-dir -r requirements.txt"]
+COPY requirements.gcp.txt /workspace/
+RUN ["/bin/bash", "-c", "python3 -m pip install --no-cache-dir -r requirements.gcp.txt"]
+ENV PYTHONUNBUFFERED True
 COPY . /workspace/
 RUN make install
-
-ENTRYPOINT ["python3", "recipes/vm/test_load_data.py"]
