@@ -16,6 +16,8 @@ RUN python3 -m pip install --no-cache-dir https://github.com/arampacha/Trainer/a
 WORKDIR /workspace
 COPY requirements.gcp.txt /workspace/
 RUN ["/bin/bash", "-c", "python3 -m pip install --no-cache-dir -r requirements.gcp.txt"]
-
+ENV PYTHONUNBUFFERED True
 COPY . /workspace/
 RUN make install
+
+ENTRYPOINT ["python", "recipes/vm/train_vits.py"]

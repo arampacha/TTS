@@ -1,7 +1,11 @@
 import argparse
+import json
 import os
+from pathlib import Path
 import requests
 
+
+import torch
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseAudioConfig
@@ -14,140 +18,229 @@ from TTS.utils.audio import AudioProcessor
 from TTS.tts.utils.speakers import SpeakerManager
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--name', type=str, default='testing')
 parser.add_argument(
-    '--task_id', required=True
+    '--task_id', type=str, required=True
 )
 parser.add_argument(
-    '--model_name', required=True
+    '--restore_path', type=str, required=False, default=''
 )
 parser.add_argument(
-    '--finetuned_model', required=False
+    '--parent_model_dir', type=str, required=False, default=''
+)
+parser.add_argument(
+    '--tgt_speaker', type=str, required=True
+)
+parser.add_argument(
+    '--epochs', type=int, default=1
+)
+parser.add_argument(
+    '--batch_size', type=int, default=2
+)
+parser.add_argument(
+    '--eval_batch_size', type=int, default=2
+)
+parser.add_argument(
+    '--batch_group_size', type=int, default=5
+)
+parser.add_argument(
+    '--num_loader_workers', type=int, default=4,
+)
+parser.add_argument(
+    '--save_step', type=int, default=1000
+)
+parser.add_argument(
+    '--print_step', type=int, default=1000
+)
+parser.add_argument(
+    '--logger', type=str, choices=['tensorboard'], default='tensorboard'
+)
+parser.add_argument(
+    '--precomputed_phoneme_cache', type=str, default=None
 )
 
 args = parser.parse_args()
 task_id = args.task_id
-model_name = args.model_name
+speaker = args.tgt_speaker
 
-r = requests.post(
-    'https://tts-api-v0-iweeluwcja-uc.a.run.app//v1/trainingstatus', 
-    json={"uuid"=task_id, "status":"active"}
-)
 
-BUCKET_NAME = os.environ.get('BUCKET_NAME')
+def convert_gcs_path(path:str):
+    if path.startswith("gs://"):
+        return path.replace('gs:/', '/gcs', 1)
 
-output_path = os.path.join('gcs', BUCKET_NAME, 'models', model_name)
+model_dir = convert_gcs_path(os.environ.get('AIP_MODEL_DIR'))
+checkpoint_dir = convert_gcs_path(os.environ.get('AIP_CHECKPOINT_DIR'))
+tensorboard_dir = convert_gcs_path(os.environ.get('AIP_TENSORBOARD_LOG_DIR'))
 
-dataset_config = BaseDatasetConfig(
-    name="voicemode_vctk_plus", meta_file_train='train', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val='dev',
-)
-audio_config = BaseAudioConfig(
-    sample_rate=22050,
-    win_length=1024,
-    hop_length=256,
-    num_mels=80,
-    preemphasis=0.0,
-    ref_level_db=20,
-    log_func="np.log",
-    do_trim_silence=True,
-    trim_db=45,
-    mel_fmin=0,
-    mel_fmax=None,
-    spec_gain=1.0,
-    signal_norm=False,
-    do_amp_to_db_linear=False,
-)
+# if checkpoint exists for this task continue from it
+continue_path = checkpoint_dir if (os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir))) else None
 
-model_args = VitsArgs(
-    use_speaker_embedding=True,
-)
+# r = requests.post(
+#     'https://tts-api-v0-iweeluwcja-uc.a.run.app//v1/trainingstatus', 
+#     json={"uuid":task_id, "status":"active"}
+# )
 
-config = VitsConfig(
-    model_args=model_args,
-    audio=audio_config,
-    run_name="vits-vctk-freeman",
-    run_description="Fine-tune VITS on VCTK with added Freeman dataset",
-    project_name="VM",
-    wandb_entity="arampacha",
-    batch_size=32,
-    eval_batch_size=16,
-    batch_group_size=5,
-    num_loader_workers=4,
-    num_eval_loader_workers=4,
-    run_eval=True,
-    test_delay_epochs=0,
-    epochs=100,
-    save_step=5000,
-    text_cleaner="english_cleaners",
-    use_phonemes=True,
-    phoneme_language="en-us",
-    phonemizer="espeak",
-    characters=CharactersConfig(
-        characters_class="TTS.tts.models.vits.VitsCharacters",
-        pad="_",
-        eos="",
-        bos="",
-        characters="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-        punctuations=";:,.!?¡¿—…\"«»“” ",
-        phonemes="ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘'̩'ᵻ"
-    ),
-    phoneme_cache_path=os.path.join(output_path, "phoneme_cache"),
-    compute_input_seq_cache=True,
-    print_step=100,
-    print_eval=False,
-    mixed_precision=True,
-    grad_clip=[5., 5.],
-    output_path=output_path,
-    datasets=[dataset_config],
-    dashboard_logger='wandb',
-    test_sentences=[
-        ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", "Freeman_angry", ""],
-        ["Be a voice, not an echo.", "Freeman_normal", ""],
-        ["I'm sorry Dave. I'm afraid I can't do that.", "Freeman_narration", ""],
-        ["This cake is great. It's so delicious and moist.", "Freeman_happy", ""],
-        ["Prior to November 22, 1963.", "Freeman_narration", ""],
-    ],
-)
+BUCKET_NAME = os.environ.get('BUCKET_NAME', 'vm-test-0')
 
-# INITIALIZE THE AUDIO PROCESSOR
-# Audio processor is used for feature extraction and audio I/O.
-# It mainly serves to the dataloader and the training loggers.
-ap = AudioProcessor.init_from_config(config)
+def create_speakers_file(model_dir:str, added_speaker:list, parent_model_dir:str=None):
+    
+    if parent_model_dir:
+        with open(os.path.join(parent_model_dir, 'speakers.json')) as f:
+            speakers = json.load(f)
+    else:
+        speakers = {}
+    for speaker in added_speaker:
+        speakers[speaker] = len(speakers)
+    
+    os.makedirs(model_dir, exist_ok=True)
+    with open(os.path.join(model_dir, 'speakers.json'), 'w') as f:
+        json.dump(speakers, f)
+    print(f"Saved updated speakers.json to {model_dir}")
 
-# INITIALIZE THE TOKENIZER
-# Tokenizer is used to convert text to sequences of token IDs.
-# config is updated with the default characters if not defined in the config.
-tokenizer, config = TTSTokenizer.init_from_config(config)
+def repackage_model(input_path, output_path):
+    state = torch.load(input_path, map_location='cpu')
 
-# LOAD DATA SAMPLES
-# Each sample is a list of ```[text, audio_file_path, speaker_name]```
-# You can define your custom sample loader returning the list of samples.
-# Or define your custom formatter and pass it to the `load_tts_samples`.
-# Check `TTS.tts.datasets.load_tts_samples` for more details.
-train_samples, eval_samples = load_tts_samples(
-    dataset_config,
-    eval_split=True,
-    eval_split_max_size=config.eval_split_max_size,
-    eval_split_size=config.eval_split_size,
-)
+    state.keys()
 
-speaker_manager = SpeakerManager()
-speaker_manager.load_ids_from_file(os.path.join(output_path, 'speakers.json'))
-config.model_args.num_speakers = speaker_manager.num_speakers
-# init model
-model = Vits(config, ap, tokenizer, speaker_manager=speaker_manager)
+    del state['optimizer']
+    del state['scaler']
 
-#freeze text encoder
-# for n, p in model.named_parameters():
-#     if n.startswith('text_encoder'):
-#         p.requires_grad = False
+    for k in list(state['model'].keys()):
+        if k.startswith('disc.'):
+            del state['model'][k]
 
-# init the trainer and 🚀
-trainer = Trainer(
-    TrainerArgs(),
-    config,
-    output_path,
-    model=model,
-    train_samples=train_samples,
-    eval_samples=eval_samples,
-)
-trainer.fit()
+    torch.save(state, output_path)
+    print(f"Saved model to {output_path}")
+
+def create_infrence_config(input_path, output_path):
+
+    with open(input_path) as f:
+        config = json.load(f)
+    
+    config['model_args']['init_discriminator'] = False
+    config['speakers_file'] = "./speakers.json"
+    with open(output_path, 'w') as f:
+        json.dump(config, f)
+    print(f"Saved config to {output_path}") 
+
+try:
+    pretraining_dataset_config = BaseDatasetConfig(
+        name="vctk_freeman", meta_file_train=f'train', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev',
+    )
+    user_dataset_config = BaseDatasetConfig(
+        name="voicemod_userdata", meta_file_train=f'train_{task_id}', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev_{task_id}',
+    )
+    audio_config = BaseAudioConfig(
+        sample_rate=22050,
+        win_length=1024,
+        hop_length=256,
+        num_mels=80,
+        preemphasis=0.0,
+        ref_level_db=20,
+        log_func="np.log",
+        do_trim_silence=True,
+        trim_db=45,
+        mel_fmin=0,
+        mel_fmax=None,
+        spec_gain=1.0,
+        signal_norm=False,
+        do_amp_to_db_linear=False,
+    )
+
+    model_args = VitsArgs(
+        use_speaker_embedding=True,
+    )
+
+    if args.precomputed_phoneme_cache is not None:
+        phoneme_cache_path = os.path.join(args.precomputed_phoneme_cache)
+    else:
+        phoneme_cache_path=os.path.join(checkpoint_dir, "phoneme_cache"),
+    config = VitsConfig(
+        output_path = checkpoint_dir,
+        model_args=model_args,
+        audio=audio_config,
+        run_name=args.name,
+        run_description="Fine-tune VITS on VCTK with added Freeman dataset",
+        project_name="VM",
+        wandb_entity=None,
+        batch_size=args.batch_size,
+        eval_batch_size=args.eval_batch_size,
+        batch_group_size=args.batch_group_size,
+        num_loader_workers=args.num_loader_workers,
+        num_eval_loader_workers=args.num_loader_workers,
+        run_eval=True,
+        test_delay_epochs=0,
+        epochs=args.epochs,
+        save_step=args.save_step,
+        text_cleaner="english_cleaners",
+        use_phonemes=True,
+        phoneme_language="en-us",
+        phonemizer="espeak",
+        characters=CharactersConfig(
+            characters_class="TTS.tts.models.vits.VitsCharacters",
+            pad="_",
+            eos="",
+            bos="",
+            characters="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+            punctuations=";:,.!?¡¿—…\"«»“” ",
+            phonemes="ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘'̩'ᵻ"
+        ),
+        phoneme_cache_path=phoneme_cache_path,
+        compute_input_seq_cache=True,
+        print_step=args.print_step,
+        print_eval=False,
+        mixed_precision=True,
+        grad_clip=[5., 5.],
+        datasets=[user_dataset_config], #[pretraining_dataset_config, user_dataset_config],
+        dashboard_logger=args.logger,
+        logger_uri=tensorboard_dir,
+        test_sentences=[
+            ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", speaker, ""],
+            ["Be a voice, not an echo.", speaker, ""],
+            ["I'm sorry Dave. I'm afraid I can't do that.", speaker, ""],
+            ["This cake is great. It's so delicious and moist.", speaker, ""],
+            ["Prior to November 22, 1963.", speaker, ""],
+        ],
+    )
+
+    ap = AudioProcessor.init_from_config(config)
+    tokenizer, config = TTSTokenizer.init_from_config(config)
+    train_samples, eval_samples = load_tts_samples(
+        user_dataset_config, # [pretraining_dataset_config, user_dataset_config]
+        eval_split=True,
+        eval_split_max_size=config.eval_split_max_size,
+        eval_split_size=config.eval_split_size,
+    )
+
+    create_speakers_file(model_dir, [speaker], args.parent_model_dir)
+
+    speaker_manager = SpeakerManager()
+    speaker_manager.load_ids_from_file(os.path.join(model_dir, 'speakers.json'))
+    config.model_args.num_speakers = speaker_manager.num_speakers
+    # init model
+    model = Vits(config, ap, tokenizer, speaker_manager=speaker_manager)
+
+    #freeze text encoder
+    # for n, p in model.named_parameters():
+    #     if n.startswith('text_encoder'):
+    #         p.requires_grad = False
+
+    trainer = Trainer(
+        args=TrainerArgs(restore_path=args.restore_path, continue_path=continue_path),
+        config=config,
+        output_path=checkpoint_dir,
+        model=model,
+        train_samples=train_samples[:10],
+        eval_samples=eval_samples[:10],
+    )
+    trainer.fit()
+except Exception as e:
+    print(e)
+
+try:
+    best_model_path = next(Path(checkpoint_dir).rglob('best_model.pth'))
+    repackage_model(best_model_path.as_posix(), os.path.join(model_dir, 'model_file.pth'))
+    config_path = best_model_path.with_name('config.json')
+    create_infrence_config(config_path.as_posix(), os.path.join(model_dir, "config_inference_gcp.json"))
+except:
+    print("!!Best model not found. Failed to export model artifacts!!")
