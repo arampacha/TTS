@@ -3,7 +3,7 @@ image: docker:dind
 
 stages:
 
-  - build-gpc
+  - build-gcp
 
 
 #cache:
