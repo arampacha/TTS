@@ -32,7 +32,7 @@ build-gcp:
   script:
     - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
 #    - printenv | grep '^REACT_APP_' >> .env
-    - docker build --file ./Dockerfile.gcp --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA-pro" .
+    - docker build --file ./Dockerfile.gcp --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
     - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA-prod"
   except:
     - tags
