@@ -185,7 +185,7 @@ try:
             punctuations=";:,.!?¡¿—…\"«»“” ",
             phonemes="ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘'̩'ᵻ"
         ),
-        phoneme_cache_path=phoneme_cache_path,
+        phoneme_cache_path=os.path.join(checkpoint_dir, "phoneme_cache"),
         compute_input_seq_cache=True,
         print_step=args.print_step,
         print_eval=False,
