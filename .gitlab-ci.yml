@@ -24,6 +24,8 @@ before_script:
 
 build-gcp:
   stage: build-gcp
+  tags:
+    - ovh
   services:
     - docker:dind
   environment: prod
