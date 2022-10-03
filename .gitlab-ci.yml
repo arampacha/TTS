@@ -13,7 +13,7 @@ stages:
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  CI_PROJECT_NAME: "TTS1"
+  CI_PROJECT_NAME: "tts1"
   GROUP_NAME: "voicemod-experience-and-innovation"
   IMAGE_NAME: "registry.service.voicemod.priv/$STACK_NAME-$CI_PROJECT_NAME"
 
