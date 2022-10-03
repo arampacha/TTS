@@ -1,0 +1,37 @@
+
+image: docker:dind
+
+stages:
+
+  - build-gpc
+
+
+#cache:
+#  key: ${CI_COMMIT_REF_SLUG}
+
+    
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  CI_PROJECT_NAME: "TTS1"
+  GROUP_NAME: "voicemod-experience-and-innovation"
+  IMAGE_NAME: "registry.service.voicemod.priv/$STACK_NAME-$CI_PROJECT_NAME"
+
+before_script:
+  - export GROUP_NAME=$(echo "$CI_PROJECT_NAMESPACE" | cut -d "/" -f 2)
+  - export IMAGE_NAME=$(echo "$GCP_DOCKER_REGISTRY/$GCP_PROJECT_ID_DEVOPS/$GROUP_NAME/$CI_PROJECT_NAME")
+  - echo "$IMAGE_NAME"
+
+build-gcp:
+  stage: build-gcp
+  services:
+    - docker:dind
+  environment: prod
+  script:
+    - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
+#    - printenv | grep '^REACT_APP_' >> .env
+    - docker build --file ./Dockerfile.gcp --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA-pro" .
+    - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA-prod"
+  except:
+    - tags
+  when: manual
