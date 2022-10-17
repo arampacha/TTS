@@ -33,7 +33,7 @@ build-gcp:
   environment: prod
   script:
     - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
-    - docker build --file ./Dockerfile.gcp --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA-gpc" .
+    - docker build --file ./Dockerfile.gcp --pull --no-cache -t "$IMAGE_NAME:gpc" .
     - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA-gcp"
   except:
     - tags
@@ -48,8 +48,8 @@ build-standard:
   environment: prod
   script:
     - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
-    - docker build --file ./Dockerfile --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
-    - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - docker build --file ./Dockerfile --pull --no-cache -t "$IMAGE_NAME:standard" .
+    - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA-standard"
   except:
     - tags
   when: manual
@@ -63,7 +63,7 @@ build-bckp:
   environment: prod
   script:
     - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
-    - docker build --file ./Dockerfile.bckp --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker build --file ./Dockerfile.bckp --pull --no-cache -t "$IMAGE_NAME:bckp" .
     - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
   except:
     - tags
@@ -78,7 +78,7 @@ build-runtime:
   environment: prod
   script:
     - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
-    - docker build --file ./Dockerfile.runtime --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker build --file ./Dockerfile.runtime --pull --no-cache -t "$IMAGE_NAME:runtime" .
     - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
   except:
     - tags
@@ -93,7 +93,7 @@ build-runtime-cpu:
   environment: prod
   script:
     - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
-    - docker build --file ./Dockerfile.runtime.cpu --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker build --file ./Dockerfile.runtime.cpu --pull --no-cache -t "$IMAGE_NAME:runtime-cpu" .
     - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
   except:
     - tags
@@ -108,7 +108,7 @@ build-runtime-server:
   environment: prod
   script:
     - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
-    - docker build --file ./Dockerfile.runtime.server --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker build --file ./Dockerfile.runtime.server --pull --no-cache -t "$IMAGE_NAME:runtime-server" .
     - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
   except:
     - tags
