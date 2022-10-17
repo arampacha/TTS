@@ -1,0 +1,115 @@
+
+image: docker:dind
+
+stages:
+
+  - build-gcp
+  - build-standard
+  - build-bckp
+  - build-runtime
+  - build-runtime-cpu
+  - build-runtime-server
+
+#cache:
+#  key: ${CI_COMMIT_REF_SLUG}
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  CI_PROJECT_NAME: "tts1"
+  GROUP_NAME: "voicemod-experience-and-innovation"
+  IMAGE_NAME: "registry.service.voicemod.priv/$STACK_NAME-$CI_PROJECT_NAME"
+
+before_script:
+  - export GROUP_NAME=$(echo "$CI_PROJECT_NAMESPACE" | cut -d "/" -f 2)
+  - export IMAGE_NAME=$(echo "$GCP_DOCKER_REGISTRY/$GCP_PROJECT_ID_DEVOPS/$GROUP_NAME/$CI_PROJECT_NAME")
+  - echo "$IMAGE_NAME"
+
+build-gcp:
+  stage: build-gcp
+  tags:
+    - ovh
+  services:
+    - docker:dind
+  environment: prod
+  script:
+    - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
+    - docker build --file ./Dockerfile.gcp --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA-gpc" .
+    - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA-gcp"
+  except:
+    - tags
+  when: manual
+
+build-standard:
+  stage: build-standard
+  tags:
+    - ovh
+  services:
+    - docker:dind
+  environment: prod
+  script:
+    - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
+    - docker build --file ./Dockerfile --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+  except:
+    - tags
+  when: manual
+
+build-bckp:
+  stage: build-bckp
+  tags:
+    - ovh
+  services:
+    - docker:dind
+  environment: prod
+  script:
+    - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
+    - docker build --file ./Dockerfile.bckp --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+  except:
+    - tags
+  when: manual
+
+build-runtime:
+  stage: build-runtime
+  tags:
+    - ovh
+  services:
+    - docker:dind
+  environment: prod
+  script:
+    - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
+    - docker build --file ./Dockerfile.runtime --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+  except:
+    - tags
+  when: manual
+
+build-runtime-cpu:
+  stage: build-runtime-cpu
+  tags:
+    - ovh
+  services:
+    - docker:dind
+  environment: prod
+  script:
+    - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
+    - docker build --file ./Dockerfile.runtime.cpu --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+  except:
+    - tags
+  when: manual
+
+build-runtime-server:
+  stage: build-runtime-server
+  tags:
+    - ovh
+  services:
+    - docker:dind
+  environment: prod
+  script:
+    - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
+    - docker build --file ./Dockerfile.runtime.server --pull --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+  except:
+    - tags
+  when: manual
