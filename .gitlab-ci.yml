@@ -8,7 +8,7 @@ stages:
   - build-bckp
   - build-runtime
   - build-runtime-cpu
-  - build-runtime-server
+  - build-server
 
 #cache:
 #  key: ${CI_COMMIT_REF_SLUG}
@@ -99,8 +99,8 @@ build-runtime-cpu:
     - tags
   when: manual
 
-build-runtime-server:
-  stage: build-runtime-server
+build-server:
+  stage: build-server
   tags:
     - ovh
   services:
@@ -108,8 +108,8 @@ build-runtime-server:
   environment: prod
   script:
     - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
-    - docker build --file ./Dockerfile.runtime.server --pull --no-cache -t "$IMAGE_NAME:runtime-server" .
-    - docker push "$IMAGE_NAME:runtime-server"
+    - docker build --file ./Dockerfile.server --pull --no-cache -t "$IMAGE_NAME:server" .
+    - docker push "$IMAGE_NAME:server"
   except:
     - tags
   when: manual
