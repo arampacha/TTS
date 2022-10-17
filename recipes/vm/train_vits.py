@@ -2,8 +2,6 @@ import argparse
 import json
 import os
 from pathlib import Path
-import requests
-
 
 import torch
 from trainer import Trainer, TrainerArgs
@@ -75,11 +73,6 @@ tensorboard_dir = convert_gcs_path(os.environ.get('AIP_TENSORBOARD_LOG_DIR'))
 # if checkpoint exists for this task continue from it
 continue_path = checkpoint_dir if (os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir))) else None
 
-# r = requests.post(
-#     'https://tts-api-v0-iweeluwcja-uc.a.run.app//v1/trainingstatus', 
-#     json={"uuid":task_id, "status":"active"}
-# )
-
 BUCKET_NAME = os.environ.get('BUCKET_NAME', 'vm-test-0')
 
 def create_speakers_file(model_dir:str, added_speaker:list, parent_model_dir:str=None):
@@ -123,119 +116,118 @@ def create_infrence_config(input_path, output_path):
         json.dump(config, f)
     print(f"Saved config to {output_path}") 
 
-try:
-    pretraining_dataset_config = BaseDatasetConfig(
-        name="vctk_freeman", meta_file_train=f'train', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev',
-    )
-    user_dataset_config = BaseDatasetConfig(
-        name="voicemod_userdata", meta_file_train=f'train_{task_id}', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev_{task_id}',
-    )
-    audio_config = BaseAudioConfig(
-        sample_rate=22050,
-        win_length=1024,
-        hop_length=256,
-        num_mels=80,
-        preemphasis=0.0,
-        ref_level_db=20,
-        log_func="np.log",
-        do_trim_silence=True,
-        trim_db=45,
-        mel_fmin=0,
-        mel_fmax=None,
-        spec_gain=1.0,
-        signal_norm=False,
-        do_amp_to_db_linear=False,
-    )
 
-    model_args = VitsArgs(
-        use_speaker_embedding=True,
-    )
+pretraining_dataset_config = BaseDatasetConfig(
+    name="vctk_freeman", meta_file_train=f'train', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev',
+)
+user_dataset_config = BaseDatasetConfig(
+    name="voicemod_userdata", meta_file_train=f'train_{task_id}', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev_{task_id}',
+)
+audio_config = BaseAudioConfig(
+    sample_rate=22050,
+    win_length=1024,
+    hop_length=256,
+    num_mels=80,
+    preemphasis=0.0,
+    ref_level_db=20,
+    log_func="np.log",
+    do_trim_silence=True,
+    trim_db=45,
+    mel_fmin=0,
+    mel_fmax=None,
+    spec_gain=1.0,
+    signal_norm=False,
+    do_amp_to_db_linear=False,
+)
 
-    if args.precomputed_phoneme_cache is not None:
-        phoneme_cache_path = os.path.join(args.precomputed_phoneme_cache)
-    else:
-        phoneme_cache_path=os.path.join(checkpoint_dir, "phoneme_cache"),
-    config = VitsConfig(
-        output_path = checkpoint_dir,
-        model_args=model_args,
-        audio=audio_config,
-        run_name=args.name,
-        run_description="Fine-tune VITS on VCTK with added Freeman dataset",
-        project_name="VM",
-        wandb_entity=None,
-        batch_size=args.batch_size,
-        eval_batch_size=args.eval_batch_size,
-        batch_group_size=args.batch_group_size,
-        num_loader_workers=args.num_loader_workers,
-        num_eval_loader_workers=args.num_loader_workers,
-        run_eval=True,
-        test_delay_epochs=0,
-        epochs=args.epochs,
-        save_step=args.save_step,
-        text_cleaner="english_cleaners",
-        use_phonemes=True,
-        phoneme_language="en-us",
-        phonemizer="espeak",
-        characters=CharactersConfig(
-            characters_class="TTS.tts.models.vits.VitsCharacters",
-            pad="_",
-            eos="",
-            bos="",
-            characters="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-            punctuations=";:,.!?¡¿—…\"«»“” ",
-            phonemes="ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘'̩'ᵻ"
-        ),
-        phoneme_cache_path=os.path.join(checkpoint_dir, "phoneme_cache"),
-        compute_input_seq_cache=True,
-        print_step=args.print_step,
-        print_eval=False,
-        mixed_precision=True,
-        grad_clip=[5., 5.],
-        datasets=[user_dataset_config], #[pretraining_dataset_config, user_dataset_config],
-        dashboard_logger=args.logger,
-        logger_uri=tensorboard_dir,
-        test_sentences=[
-            ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", speaker, ""],
-            ["Be a voice, not an echo.", speaker, ""],
-            ["I'm sorry Dave. I'm afraid I can't do that.", speaker, ""],
-            ["This cake is great. It's so delicious and moist.", speaker, ""],
-            ["Prior to November 22, 1963.", speaker, ""],
-        ],
-    )
+model_args = VitsArgs(
+    use_speaker_embedding=True,
+)
 
-    ap = AudioProcessor.init_from_config(config)
-    tokenizer, config = TTSTokenizer.init_from_config(config)
-    train_samples, eval_samples = load_tts_samples(
-        user_dataset_config, # [pretraining_dataset_config, user_dataset_config]
-        eval_split=True,
-        eval_split_max_size=config.eval_split_max_size,
-        eval_split_size=config.eval_split_size,
-    )
+if args.precomputed_phoneme_cache is not None:
+    phoneme_cache_path = os.path.join(args.precomputed_phoneme_cache)
+else:
+    phoneme_cache_path=os.path.join(checkpoint_dir, "phoneme_cache"),
+config = VitsConfig(
+    output_path = checkpoint_dir,
+    model_args=model_args,
+    audio=audio_config,
+    run_name=args.name,
+    run_description="Fine-tune VITS on VCTK with added Freeman dataset",
+    project_name="VM",
+    wandb_entity=None,
+    batch_size=args.batch_size,
+    eval_batch_size=args.eval_batch_size,
+    batch_group_size=args.batch_group_size,
+    num_loader_workers=args.num_loader_workers,
+    num_eval_loader_workers=args.num_loader_workers,
+    run_eval=True,
+    test_delay_epochs=0,
+    epochs=args.epochs,
+    save_step=args.save_step,
+    text_cleaner="english_cleaners",
+    use_phonemes=True,
+    phoneme_language="en-us",
+    phonemizer="espeak",
+    characters=CharactersConfig(
+        characters_class="TTS.tts.models.vits.VitsCharacters",
+        pad="_",
+        eos="",
+        bos="",
+        characters="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+        punctuations=";:,.!?¡¿—…\"«»“” ",
+        phonemes="ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘'̩'ᵻ"
+    ),
+    phoneme_cache_path=os.path.join(checkpoint_dir, "phoneme_cache"),
+    compute_input_seq_cache=True,
+    print_step=args.print_step,
+    print_eval=False,
+    mixed_precision=True,
+    grad_clip=[5., 5.],
+    datasets=[pretraining_dataset_config, user_dataset_config],
+    dashboard_logger=args.logger,
+    logger_uri=tensorboard_dir,
+    test_sentences=[
+        ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", speaker, ""],
+        ["Be a voice, not an echo.", speaker, ""],
+        ["I'm sorry Dave. I'm afraid I can't do that.", speaker, ""],
+        ["This cake is great. It's so delicious and moist.", speaker, ""],
+        ["Prior to November 22, 1963.", speaker, ""],
+    ],
+)
 
-    create_speakers_file(model_dir, [speaker], args.parent_model_dir)
+ap = AudioProcessor.init_from_config(config)
+tokenizer, config = TTSTokenizer.init_from_config(config)
+train_samples, eval_samples = load_tts_samples(
+    user_dataset_config, # [pretraining_dataset_config, user_dataset_config]
+    eval_split=True,
+    eval_split_max_size=config.eval_split_max_size,
+    eval_split_size=config.eval_split_size,
+)
 
-    speaker_manager = SpeakerManager()
-    speaker_manager.load_ids_from_file(os.path.join(model_dir, 'speakers.json'))
-    config.model_args.num_speakers = speaker_manager.num_speakers
-    # init model
-    model = Vits(config, ap, tokenizer, speaker_manager=speaker_manager)
+create_speakers_file(model_dir, [speaker], args.parent_model_dir)
 
-    #freeze text encoder
-    # for n, p in model.named_parameters():
-    #     if n.startswith('text_encoder'):
-    #         p.requires_grad = False
+speaker_manager = SpeakerManager()
+speaker_manager.load_ids_from_file(os.path.join(model_dir, 'speakers.json'))
+config.model_args.num_speakers = speaker_manager.num_speakers
+# init model
+model = Vits(config, ap, tokenizer, speaker_manager=speaker_manager)
 
-    trainer = Trainer(
-        args=TrainerArgs(restore_path=args.restore_path, continue_path=continue_path),
-        config=config,
-        output_path=checkpoint_dir,
-        model=model,
-        train_samples=train_samples[:10],
-        eval_samples=eval_samples[:10],
-    )
-    trainer.fit()
-except Exception as e:
-    print(e)
+#freeze text encoder
+# for n, p in model.named_parameters():
+#     if n.startswith('text_encoder'):
+#         p.requires_grad = False
+
+trainer = Trainer(
+    args=TrainerArgs(restore_path=args.restore_path, continue_path=continue_path),
+    config=config,
+    output_path=checkpoint_dir,
+    model=model,
+    train_samples=train_samples[:10],
+    eval_samples=eval_samples[:10],
+)
+trainer.fit()
+
 
 try:
     best_model_path = next(Path(checkpoint_dir).rglob('best_model.pth'))
