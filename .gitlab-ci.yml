@@ -5,7 +5,6 @@ stages:
 
   - build-gcp
   - build-standard
-  - build-bckp
   - build-runtime
   - build-runtime-cpu
   - build-server
@@ -50,21 +49,6 @@ build-standard:
     - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
     - docker build --file ./Dockerfile --pull --no-cache -t "$IMAGE_NAME:standard" .
     - docker push "$IMAGE_NAME:standard"
-  except:
-    - tags
-  when: manual
-
-build-bckp:
-  stage: build-bckp
-  tags:
-    - ovh
-  services:
-    - docker:dind
-  environment: prod
-  script:
-    - docker login -u _json_key --password="$(cat $GCP_AUTH_DEVOPS)" https://${GCP_DOCKER_REGISTRY}
-    - docker build --file ./Dockerfile.bckp --pull --no-cache -t "$IMAGE_NAME:bckp" .
-    - docker push "$IMAGE_NAME:bckp"
   except:
     - tags
   when: manual
