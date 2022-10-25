@@ -653,63 +653,63 @@ def vctk_freemanx10(root_path, meta_files='train', ignored_speakers=['s5', 'p315
     return items
 
 
-def voicemod_vctk_plus(root_path:str, meta_files:str='train', ignored_speakers=['s5', 'p315']):
+# def voicemod_vctk_plus(root_path:str, meta_files:str='train', ignored_speakers=['s5', 'p315']):
 
-    # user items
-    user_items = []
-    with open(os.path.join(root_path, task_id, 'metadata.tsv')) as f:
-        for line in f.readlines():
-            filename, text, speaker_id = line.strip().split('\t')
-            audio_file = os.path.join(root_path, filename)
-            user_items.append({"text":text, "audio_file": audio_file, "speaker_name":speaker_id})
+#     # user items
+#     user_items = []
+#     with open(os.path.join(root_path, task_id, 'metadata.tsv')) as f:
+#         for line in f.readlines():
+#             filename, text, speaker_id = line.strip().split('\t')
+#             audio_file = os.path.join(root_path, filename)
+#             user_items.append({"text":text, "audio_file": audio_file, "speaker_name":speaker_id})
     
-    random.seed(42)
-    random.shuffle(user_items)
-    split = int(0.8*len(user_items))
-    train_user_items = user_items[:split]
-    dev_user_items = user_items[split:]
+#     random.seed(42)
+#     random.shuffle(user_items)
+#     split = int(0.8*len(user_items))
+#     train_user_items = user_items[:split]
+#     dev_user_items = user_items[split:]
 
-    if meta_files.startswith("train"):
-        items = []
-        # vctk items
-        vctk_path = os.path.join(root_path,'vctk','raw_data')
-        _meta_files = glob(f"{vctk_path}/**/*.txt", recursive=True)
-        for meta_file in _meta_files:
-            _pathlist = os.path.relpath(meta_file, root_path).split(os.sep)
-            speaker_id, txt_file = _pathlist[-2], _pathlist[-1]
-            file_id = txt_file.split(".")[0]
-            # ignore speakers
+#     if meta_files.startswith("train"):
+#         items = []
+#         # vctk items
+#         vctk_path = os.path.join(root_path,'vctk','raw_data')
+#         _meta_files = glob(f"{vctk_path}/**/*.txt", recursive=True)
+#         for meta_file in _meta_files:
+#             _pathlist = os.path.relpath(meta_file, root_path).split(os.sep)
+#             speaker_id, txt_file = _pathlist[-2], _pathlist[-1]
+#             file_id = txt_file.split(".")[0]
+#             # ignore speakers
             
-            if speaker_id in ignored_speakers:
-                continue
-            with open(meta_file, "r", encoding="utf-8") as file_text:
-                text = file_text.readlines()[0]
-            wav_file = os.path.join(vctk_path, speaker_id, f"{file_id}.wav")
-            if os.path.exists(wav_file):
-                items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
-            else:
-                print(f" [!] wav files don't exist - {wav_file}")
+#             if speaker_id in ignored_speakers:
+#                 continue
+#             with open(meta_file, "r", encoding="utf-8") as file_text:
+#                 text = file_text.readlines()[0]
+#             wav_file = os.path.join(vctk_path, speaker_id, f"{file_id}.wav")
+#             if os.path.exists(wav_file):
+#                 items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
+#             else:
+#                 print(f" [!] wav files don't exist - {wav_file}")
         
-        # freeman items
-        freeman_path = os.path.join(root_path, 'freeman')
-        metadata = pd.read_csv(os.path.join(freeman_path, 'transcripts.tsv'), sep='\t')
-        metadata = metadata[metadata.split=='train']
-        freeman_items = []
-        for i, row in metadata.iterrows():
-            text = row.transcript
-            wav_file = os.path.join(freeman_path, 'wavs', f'{row.id}.wav')
-            speaker_id = row.speaker.replace(' ', '_')
-            freeman_items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
-        items += freeman_items
+#         # freeman items
+#         freeman_path = os.path.join(root_path, 'freeman')
+#         metadata = pd.read_csv(os.path.join(freeman_path, 'transcripts.tsv'), sep='\t')
+#         metadata = metadata[metadata.split=='train']
+#         freeman_items = []
+#         for i, row in metadata.iterrows():
+#             text = row.transcript
+#             wav_file = os.path.join(freeman_path, 'wavs', f'{row.id}.wav')
+#             speaker_id = row.speaker.replace(' ', '_')
+#             freeman_items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
+#         items += freeman_items
 
-        items += train_user_items*10
-        return items
+#         items += train_user_items*10
+#         return items
 
-    elif meta_files.startswith('dev'):
-        return dev_user_items
+#     elif meta_files.startswith('dev'):
+#         return dev_user_items
 
-    else:
-        raise ValueError(f"Wrong meta_files value: {meta_files}")
+#     else:
+#         raise ValueError(f"Wrong meta_files value: {meta_files}")
 
 
 def voicemod_userdata(root_path:str, meta_files:str, ignored_speakers=None):
