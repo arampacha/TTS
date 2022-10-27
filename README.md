@@ -1,4 +1,11 @@
-# <img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/coqui-log-green-TTS.png" height="56"/>
+<img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/coqui-log-green-TTS.png" height="56"/>
+
+----
+
+### 📣 Clone your voice with a single click on [🐸Coqui.ai](https://app.coqui.ai/auth/signin)
+### 📣 🐸Coqui Studio is launching soon!! Join our [waiting list](https://coqui.ai/)!!
+
+----
 
 🐸TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to achieve the best trade-off among ease-of-training, speed and quality.
 🐸TTS comes with pretrained models, tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
@@ -20,6 +27,8 @@
 ![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/vocoder_tests.yml/badge.svg)
 ![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests.yml/badge.svg)
 [![Docs](<https://readthedocs.org/projects/tts/badge/?version=latest&style=plastic>)](https://tts.readthedocs.io/en/latest/)
+
+🚀 [**Sign up to free 🐸Coqui.ai API and start cloning your voice**](https://coqui.ai/)
 
 📰 [**Subscribe to 🐸Coqui.ai Newsletter**](https://coqui.ai/?subscription=true)
 
@@ -75,7 +84,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Modular (but not too much) code base enabling easy implementation of new ideas.
 
 ## Implemented Models
-### Text-to-Spectrogram
+### Spectrogram models
 - Tacotron: [paper](https://arxiv.org/abs/1703.10135)
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
 - Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
@@ -83,9 +92,12 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
 - FastPitch: [paper](https://arxiv.org/pdf/2006.06873.pdf)
 - FastSpeech: [paper](https://arxiv.org/abs/1905.09263)
+- SC-GlowTTS: [paper](https://arxiv.org/abs/2104.05557)
+- Capacitron: [paper](https://arxiv.org/abs/1906.03402)
 
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
+- YourTTS: [paper](https://arxiv.org/abs/2112.02418)
 
 ### Attention Methods
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
@@ -130,7 +142,7 @@ pip install -e .[all,dev,notebooks]  # Select the relevant extras
 If you are on Ubuntu (Debian), you can also run following commands for installation.
 
 ```bash
-$ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a diffent OS.
+$ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a different OS.
 $ make install
 ```
 
@@ -145,6 +157,30 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
     ```
     $ tts --list_models
     ```
+- Get model info (for both tts_models and vocoder_models):
+    - Query by type/name:
+        The model_info_by_name uses the name as it from the --list_models.
+        ```
+        $ tts --model_info_by_name "<model_type>/<language>/<dataset>/<model_name>"
+        ```
+        For example:
+
+        ```
+        $ tts --model_info_by_name tts_models/tr/common-voice/glow-tts
+        ```
+        ```
+        $ tts --model_info_by_name vocoder_models/en/ljspeech/hifigan_v2
+        ```
+    - Query by type/idx:
+        The model_query_idx uses the corresponding idx from --list_models.
+        ```
+        $ tts --model_info_by_idx "<model_type>/<model_query_idx>"
+        ```
+        For example:
+
+        ```
+        $ tts --model_info_by_idx tts_models/3
+        ```
 
 - Run TTS with default models:
 
@@ -157,10 +193,10 @@ If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](ht
     ```
     $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
     ```
-For example:
+  For example:
 
     ```
-    $  tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --out_path output/path/speech.wav
+    $ tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --out_path output/path/speech.wav
     ```
 
 - Run with specific TTS and vocoder models from the list:
@@ -169,10 +205,10 @@ For example:
     $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --vocoder_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
     ```
 
-For example:
+  For example:
 
     ```
-    $  tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --vocoder_name "vocoder_models/en/ljspeech/univnet" --out_path output/path/speech.wav
+    $ tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --vocoder_name "vocoder_models/en/ljspeech/univnet" --out_path output/path/speech.wav
     ```
 
 
@@ -215,8 +251,6 @@ For example:
 |- TTS
     |- bin/             (folder for all the executables.)
       |- train*.py                  (train your target model.)
-      |- distribute.py              (train your TTS model using Multiple GPUs.)
-      |- compute_statistics.py      (compute dataset statistics for normalization.)
       |- ...
     |- tts/             (text to speech models)
         |- layers/          (model layer definitions)
