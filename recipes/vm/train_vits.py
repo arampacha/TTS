@@ -170,7 +170,7 @@ try:
         model_args=model_args,
         audio=audio_config,
         run_name=args.name,
-        run_description="Fine-tune VITS on VCTK with added Freeman dataset",
+        run_description=f"Fine-tune VITS run {task_id}",
         project_name="VM",
         wandb_entity=None,
         batch_size=args.batch_size,
@@ -211,6 +211,9 @@ try:
             ["This cake is great. It's so delicious and moist.", speaker, ""],
             ["Prior to November 22, 1963.", speaker, ""],
         ],
+        use_weighted_sampler=True,
+        weighted_sampler_attrs={"speaker_name":1.},
+        weighted_sampler_multipliers={"speaker_name":{args.tgt_speaker:10}} #TODO(arto): heuristic for upweighting tgt speaker based on amount of data
     )
 
     ap = AudioProcessor.init_from_config(config)

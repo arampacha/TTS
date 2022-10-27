@@ -623,7 +623,7 @@ def vctk_freeman(root_path, meta_files='train', ignored_speakers=['s5', 'p315'])
                 text = file_text.readlines()[0]
             wav_file = os.path.join(vctk_path, speaker_id, f"{file_id}.wav")
             if os.path.exists(wav_file):
-                items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
+                items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id, "root_path": vctk_path})
             else:
                 print(f" [!] wav files don't exist - {wav_file}")
         
@@ -635,7 +635,7 @@ def vctk_freeman(root_path, meta_files='train', ignored_speakers=['s5', 'p315'])
             text = row.transcript
             wav_file = os.path.join(freeman_path, 'wavs', f'{row.id}.wav')
             speaker_id = row.speaker.replace(' ', '_')
-            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id})
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id, "root_path": freeman_path})
 
     elif meta_files == 'dev':
         items = []
@@ -767,7 +767,7 @@ def voicemod_userdata(root_path:str, meta_files:str, ignored_speakers=None):
             for line in f.readlines():
                 filename, text, speaker_id = line.strip().split('\t')
                 audio_file = os.path.join(root_path, filename)
-                items.append({"text":text, "audio_file": audio_file, "speaker_name":speaker_id})
+                items.append({"text":text, "audio_file": audio_file, "speaker_name":speaker_id, "root_path": root_path})
         return items
     
     if meta_files.startswith('train'):
