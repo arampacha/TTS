@@ -135,10 +135,10 @@ def create_infrence_config(input_path, output_path):
 
 try:
     pretraining_dataset_config = BaseDatasetConfig(
-        name="vctk_freeman", meta_file_train=f'train', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev',
+        formatter="vctk_freeman", meta_file_train=f'train', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev',
     )
     user_dataset_config = BaseDatasetConfig(
-        name="voicemod_userdata", meta_file_train=f'train_{task_id}', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev_{task_id}',
+        formatter="voicemod_userdata", meta_file_train=f'train_{task_id}', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev_{task_id}',
     )
     audio_config = BaseAudioConfig(
         sample_rate=22050,

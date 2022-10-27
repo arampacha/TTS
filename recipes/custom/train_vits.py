@@ -13,7 +13,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 
 output_path = "/home/freeman-vits-vctk"
 dataset_config = BaseDatasetConfig(
-    name="vctk_freemanx10", meta_file_train='train', path="/home/data", meta_file_val='dev',
+    formatter="vctk_freeman", meta_file_train='train', path="/home/data", meta_file_val='dev',
     ignored_speakers=['s5', 'p315']
 )
 audio_config = BaseAudioConfig(
@@ -82,6 +82,9 @@ config = VitsConfig(
         ["This cake is great. It's so delicious and moist.", "Freeman_happy", ""],
         ["Prior to November 22, 1963.", "Freeman_narration", ""],
     ],
+    use_weighted_sampler=True,
+    weighted_sampler_attrs={"root_path":1.},
+    weighted_sampler_multipliers={"root_path":{"/home/data/freeman_v2/":10.}}
 )
 
 # INITIALIZE THE AUDIO PROCESSOR
