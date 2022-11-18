@@ -56,7 +56,7 @@ parser.add_argument(
     '--logger', type=str, choices=['tensorboard'], default='tensorboard'
 )
 parser.add_argument(
-    '--precomputed_phoneme_cache', type=str, default=None
+    '--phoneme_cache_path', type=str, default=None
 )
 
 args = parser.parse_args()
@@ -77,12 +77,25 @@ def log_task_status_upd(status_code:int):
 model_dir = convert_gcs_path(os.environ.get('AIP_MODEL_DIR'))
 checkpoint_dir = convert_gcs_path(os.environ.get('AIP_CHECKPOINT_DIR'))
 tensorboard_dir = convert_gcs_path(os.environ.get('AIP_TENSORBOARD_LOG_DIR'))
-parent_api_url = os.environ.get("PARENT_API_URL", 'http://35.189.230.56')
-x_api_key = os.environ.get('X_API_KEY', 'bZVLb9jwEVp6bE')
-BUCKET_NAME = os.environ.get('BUCKET_NAME', 'vm-v0-api')
+parent_api_url = os.environ.get("PARENT_API_URL")
+x_api_key = os.environ.get('X_API_KEY')
+BUCKET_NAME = os.environ.get('BUCKET_NAME')
+if BUCKET_NAME is None:
+    raise ValueError("No `BUCKET_NAME` provided.")
 
 # if checkpoint exists for this task continue from it
-continue_path = checkpoint_dir if (os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir))) else None
+if os.path.isdir(checkpoint_dir):
+    runs = sorted(
+        [path.as_posix() for path in Path(checkpoint_dir).iterdir() if (path.is_dir() and path.name != 'phoneme_cache')],
+        key=os.path.getmtime,
+    )
+    print("Resuming from checkpoint")
+    if len(runs):
+        continue_path = runs[-1]
+    else:
+        continue_path = None
+else:
+    continue_path = None
 
 r = requests.post(
     f'{parent_api_url}/v1/trainingstatus', 
@@ -161,10 +174,11 @@ try:
         use_speaker_embedding=True,
     )
 
-    if args.precomputed_phoneme_cache is not None:
-        phoneme_cache_path = os.path.join(args.precomputed_phoneme_cache)
+    if args.phoneme_cache_path is not None:
+        phoneme_cache_path = os.path.join(args.phoneme_cache_path)
+        os.makedirs(phoneme_cache_path, exist_ok=True)
     else:
-        phoneme_cache_path=os.path.join(checkpoint_dir, "phoneme_cache"),
+        phoneme_cache_path=os.path.join(checkpoint_dir, "phoneme_cache")
     config = VitsConfig(
         output_path = checkpoint_dir,
         model_args=model_args,
@@ -195,7 +209,7 @@ try:
             punctuations=";:,.!?¡¿—…\"«»“” ",
             phonemes="ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘'̩'ᵻ"
         ),
-        phoneme_cache_path=os.path.join(checkpoint_dir, "phoneme_cache"),
+        phoneme_cache_path=phoneme_cache_path,
         compute_input_seq_cache=True,
         print_step=args.print_step,
         print_eval=False,
@@ -251,7 +265,7 @@ except Exception as e:
     print(e)
 
 try:
-    best_model_path = next(Path(checkpoint_dir).rglob('best_model.pth'))
+    best_model_path = sorted(list(Path(checkpoint_dir).rglob('best_model.pth')), key=os.path.getmtime)[-1]
     repackage_model(best_model_path.as_posix(), os.path.join(model_dir, 'model_file.pth'))
     config_path = best_model_path.with_name('config.json')
     create_infrence_config(config_path.as_posix(), os.path.join(model_dir, "config_inference_gcp.json"))
