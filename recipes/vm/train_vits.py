@@ -148,7 +148,7 @@ def create_infrence_config(input_path, output_path):
 
 try:
     pretraining_dataset_config = BaseDatasetConfig(
-        formatter="vctk_freeman", meta_file_train=f'train', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev',
+        formatter="vctk_freeman", meta_file_train=f'train', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev', , ignored_speakers=['s5', 'p315']
     )
     user_dataset_config = BaseDatasetConfig(
         formatter="voicemod_userdata", meta_file_train=f'train_{task_id}', path=f"/gcs/{BUCKET_NAME}/data", meta_file_val=f'dev_{task_id}',
