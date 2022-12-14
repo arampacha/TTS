@@ -168,3 +168,5 @@ internal/*
 wandb
 depot/*
 coqui_recipes/*
+
+Dockerfile.test
