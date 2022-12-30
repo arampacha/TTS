@@ -33,6 +33,7 @@ unidic-lite==1.0.8
 # gruut+supported langs
 gruut[cs,de,es,fr,it,nl,pt,ru,sv]==2.2.3
 #tracking
+https://github.com/arampacha/Trainer/archive/wandb.zip
 wandb
 # gcp
 smart_open==6.2.0
