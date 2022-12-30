@@ -266,7 +266,7 @@ try:
     best_model_path = sorted(list(Path(checkpoint_dir).rglob('best_model.pth')), key=os.path.getmtime)[-1]
     repackage_model(best_model_path.as_posix(), os.path.join(model_dir, 'model_file.pth'))
     config_path = best_model_path.with_name('config.json')
-    create_infrence_config(config_path.as_posix(), os.path.join(model_dir, "config_inference_gcp.json"))
+    create_infrence_config(config_path.as_posix(), os.path.join(model_dir, "config_inference.json"))
 
     r = requests.post(
         f'{parent_api_url}/v1/trainingstatus', 
