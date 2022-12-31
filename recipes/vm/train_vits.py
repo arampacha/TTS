@@ -141,7 +141,8 @@ def create_infrence_config(input_path, output_path):
         config = json.load(f)
     
     config['model_args']['init_discriminator'] = False
-    config['speakers_file'] = "./speakers.json"
+    config['model_args']['speakers_file'] = f"models/{task_id}/model/speakers.json"
+    config['speakers_file'] = f"models/{task_id}/model/speakers.json"
     with open(output_path, 'w') as f:
         json.dump(config, f)
     print(f"Saved config to {output_path}") 
@@ -267,7 +268,7 @@ try:
     repackage_model(best_model_path.as_posix(), os.path.join(model_dir, 'model_file.pth'))
     config_path = best_model_path.with_name('config.json')
     create_infrence_config(config_path.as_posix(), os.path.join(model_dir, "config_inference.json"))
-
+    
     r = requests.post(
         f'{parent_api_url}/v1/trainingstatus', 
         json={"uuid":task_id, "status":"completed"},
