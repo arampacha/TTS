@@ -227,7 +227,10 @@ config = VitsConfig(
     ],
     use_weighted_sampler=True,
     weighted_sampler_attrs={"speaker_name":1.},
-    weighted_sampler_multipliers={"speaker_name":{args.tgt_speaker:10}} #TODO(arto): heuristic for upweighting tgt speaker based on amount of data
+    weighted_sampler_multipliers={"speaker_name":{args.tgt_speaker:10}}, #TODO(arto): heuristic for upweighting tgt speaker based on amount of data
+    min_text_len=10,
+    max_text_len=200,
+    max_audio_len=20*22050
 )
 
 ap = AudioProcessor.init_from_config(config)
