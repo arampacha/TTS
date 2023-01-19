@@ -2,8 +2,8 @@ import argparse
 import json
 import os
 from pathlib import Path
+import random
 import requests
-
 
 import torch
 from trainer import Trainer, TrainerArgs
@@ -27,9 +27,6 @@ parser.add_argument(
 )
 parser.add_argument(
     '--parent_model_dir', type=str, required=False, default=''
-)
-parser.add_argument(
-    '--tgt_speaker', type=str, required=True
 )
 parser.add_argument(
     '--epochs', type=int, default=1
@@ -61,7 +58,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 task_id = args.task_id
-speaker = args.tgt_speaker
 
 
 def convert_gcs_path(path:str):
@@ -105,14 +101,14 @@ r = requests.post(
 log_task_status_upd(r.status_code)
 
 
-def create_speakers_file(model_dir:str, added_speaker:list, parent_model_dir:str=None):
+def create_speakers_file(model_dir:str, added_speakers:list, parent_model_dir:str=None):
     
     if parent_model_dir:
         with open(os.path.join(parent_model_dir, 'speakers.json')) as f:
             speakers = json.load(f)
     else:
         speakers = {}
-    for speaker in added_speaker:
+    for speaker in added_speakers:
         speakers[speaker] = len(speakers)
     
     os.makedirs(model_dir, exist_ok=True)
@@ -174,6 +170,18 @@ model_args = VitsArgs(
     use_speaker_embedding=True,
 )
 
+train_samples, eval_samples = load_tts_samples(
+    [pretraining_dataset_config, user_dataset_config],
+    eval_split=True
+)
+train_speakers = set([e['speaker_name'] for e in train_samples])
+eval_speakers = set([e['speaker_name'] for e in train_samples])
+if len(eval_speakers.difference(train_speakers)):
+    print("!! Some speakers present in eval dataset are not fount in train dataset.")
+added_speakers = list(train_speakers.union(eval_speakers))
+test_speakers = random.choices(added_speakers, 5)
+create_speakers_file(model_dir, added_speakers, args.parent_model_dir)
+
 if args.phoneme_cache_path is not None:
     phoneme_cache_path = os.path.join(args.phoneme_cache_path)
     os.makedirs(phoneme_cache_path, exist_ok=True)
@@ -219,15 +227,15 @@ config = VitsConfig(
     dashboard_logger=args.logger,
     logger_uri=tensorboard_dir,
     test_sentences=[
-        ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", speaker, ""],
-        ["Be a voice, not an echo.", speaker, ""],
-        ["I'm sorry Dave. I'm afraid I can't do that.", speaker, ""],
-        ["This cake is great. It's so delicious and moist.", speaker, ""],
-        ["Prior to November 22, 1963.", speaker, ""],
+        ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", test_speakers[0], ""],
+        ["Be a voice, not an echo.", test_speakers[1], ""],
+        ["I'm sorry Dave. I'm afraid I can't do that.", test_speakers[2], ""],
+        ["This cake is great. It's so delicious and moist.", test_speakers[3], ""],
+        ["Prior to November 22, 1963.", test_speakers[4], ""],
     ],
     use_weighted_sampler=True,
     weighted_sampler_attrs={"speaker_name":1.},
-    weighted_sampler_multipliers={"speaker_name":{args.tgt_speaker:10}}, #TODO(arto): heuristic for upweighting tgt speaker based on amount of data
+    weighted_sampler_multipliers={"speaker_name":{speaker:10 for speaker in added_speakers}}, #TODO(arto): heuristic for upweighting tgt speaker based on amount of data
     min_text_len=10,
     max_text_len=200,
     max_audio_len=20*22050
@@ -235,14 +243,6 @@ config = VitsConfig(
 
 ap = AudioProcessor.init_from_config(config)
 tokenizer, config = TTSTokenizer.init_from_config(config)
-train_samples, eval_samples = load_tts_samples(
-    [pretraining_dataset_config, user_dataset_config],
-    eval_split=True,
-    eval_split_max_size=config.eval_split_max_size,
-    eval_split_size=config.eval_split_size,
-)
-
-create_speakers_file(model_dir, [speaker], args.parent_model_dir)
 
 speaker_manager = SpeakerManager()
 speaker_manager.load_ids_from_file(os.path.join(model_dir, 'speakers.json'))
@@ -265,7 +265,7 @@ trainer = Trainer(
 )
 trainer.fit()
 
-
+# create inference model artifacts
 try:
     best_model_path = sorted(list(Path(checkpoint_dir).rglob('best_model.pth')), key=os.path.getmtime)[-1]
     repackage_model(best_model_path.as_posix(), os.path.join(model_dir, 'model_file.pth'))
